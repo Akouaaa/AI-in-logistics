@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Teaser Masterclass — IA & Supply Chain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink-950:#0E1F16;
+    --ink-900:#12281D;
+    --ink-800:#1B3B29;
+    --ink-700:#264F37;
+    --moss:#8CB56B;
+    --moss-dim:#5F8A4C;
+    --gold:#E3A83B;
+    --gold-dim:#B8842A;
+    --paper:#F3F1E6;
+    --paper-dim:#B9C2B4;
+    --accent: #8CB56B;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:#05100A;}
+  body{
+    font-family:"Inter",sans-serif;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    padding:24px;
+  }
+
+  .frame{
+    position:relative;
+    width:100%;
+    max-width:760px;
+    aspect-ratio:9/16;
+    max-height:92vh;
+    background:radial-gradient(120% 140% at 50% -10%, var(--ink-800) 0%, var(--ink-950) 55%, #060F0A 100%);
+    border-radius:22px;
+    overflow:hidden;
+    box-shadow:0 40px 80px -30px rgba(0,0,0,.7), 0 0 0 1px rgba(140,181,107,.15);
+    transition:background 1.2s ease;
+  }
+
+  .particles{ position:absolute; inset:0; z-index:0; overflow:hidden; }
+  .particle{
+    position:absolute; border-radius:50%; background:var(--accent);
+    opacity:.18; filter:blur(1px);
+    animation:drift linear infinite;
+  }
+  @keyframes drift{
+    0%{ transform:translateY(0) translateX(0); }
+    50%{ transform:translateY(-26px) translateX(10px); }
+    100%{ transform:translateY(0) translateX(0); }
+  }
+
+  .route-wrap{ position:absolute; inset:0; z-index:1; pointer-events:none; }
+  .route-path{
+    fill:none; stroke:url(#routeGrad); stroke-width:2.5; stroke-linecap:round;
+    stroke-dasharray:14 10; opacity:.55; animation:dashmove 3.4s linear infinite;
+  }
+  @keyframes dashmove{ to{ stroke-dashoffset:-240; } }
+  .route-pulse{
+    r:5; fill:var(--gold); filter:drop-shadow(0 0 6px var(--gold));
+    offset-path:path('M -20 480 C 120 420, 180 560, 300 500 S 520 400, 660 470 S 820 560, 980 500');
+    animation:travel 5s linear infinite;
+  }
+  @keyframes travel{
+    0%{ offset-distance:0%; opacity:0; }
+    6%{ opacity:1; }
+    94%{ opacity:1; }
+    100%{ offset-distance:100%; opacity:0; }
+  }
+
+  .hud{
+    position:absolute; top:0; left:0; right:0; z-index:30;
+    padding:16px 18px 0; display:flex; align-items:center; gap:10px;
+  }
+  .track{ flex:1; height:3px; background:rgba(243,241,230,.14); border-radius:3px; overflow:hidden; }
+  .bar{ height:100%; width:0%; background:linear-gradient(90deg,var(--moss),var(--gold)); border-radius:3px; }
+  .clock{ font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--paper-dim); min-width:34px; text-align:right; }
+  .eyebrow-fixed{
+    position:static; font-family:"JetBrains Mono",monospace; font-size:10.5px; letter-spacing:.14em;
+    color:var(--moss); text-transform:uppercase; opacity:.85;
+  }
+  .dots{
+    position:absolute; top:32px; left:0; right:0; z-index:30;
+    display:flex; justify-content:center; gap:6px;
+  }
+  .dot{ width:5px; height:5px; border-radius:50%; background:rgba(243,241,230,.25); transition:background .3s,transform .3s; }
+  .dot.on{ background:var(--gold); transform:scale(1.4); }
+
+  .stage{ position:absolute; inset:0; z-index:10; }
+  .scene{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:76px 32px 56px;
+    opacity:0; visibility:hidden;
+    transition:opacity .45s ease;
+  }
+  .scene.active{ opacity:1; visibility:visible; }
+  .scene.leaving{ opacity:0; }
+
+  .kicker{
+    font-family:"JetBrains Mono",monospace; font-size:11.5px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--gold); margin-bottom:14px; opacity:0; transform:translateY(8px);
+  }
+  .headline{
+    font-family:"Fraunces",serif; font-weight:600; color:var(--paper);
+    font-size:clamp(24px,6.6vw,34px); line-height:1.15; text-align:center; letter-spacing:-.01em;
+    max-width:560px;
+  }
+  .sub{ font-size:14px; color:var(--paper-dim); text-align:center; max-width:460px; margin-top:14px; line-height:1.5; }
+  .word{ display:inline-block; opacity:0; filter:blur(3px); transform:translateY(10px); animation:wordIn .55s cubic-bezier(.2,.8,.2,1) forwards; }
+  @keyframes wordIn{ to{ opacity:1; filter:blur(0); transform:translateY(0); } }
+  @keyframes kickerIn{ to{ opacity:1; transform:translateY(0); } }
+
+  .prog-grid{ display:flex; flex-direction:column; gap:9px; margin-top:22px; width:100%; max-width:440px; }
+  .prog-card{
+    display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:12px;
+    background:rgba(243,241,230,.05); border:1px solid rgba(140,181,107,.2);
+    opacity:0; transform:translateX(-16px);
+  }
+  .prog-card .num{ font-family:"JetBrains Mono",monospace; color:var(--gold); font-size:12px; font-weight:600; }
+  .prog-card .lbl{ font-size:13px; color:var(--paper); font-weight:500; }
+
+  .agentic-stack{ position:relative; width:100%; max-width:480px; height:280px; margin-top:20px; }
+  .agentic-card{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; text-align:center;
+    padding:18px 20px; border-radius:16px; background:rgba(243,241,230,.045);
+    border:1px solid rgba(140,181,107,.22); opacity:0; transform:scale(.94) translateY(10px);
+    transition:opacity .5s ease, transform .5s ease;
+  }
+  .agentic-card.on{ opacity:1; transform:scale(1) translateY(0); }
+  .agentic-card .tag{ font-size:10.5px; color:var(--moss); letter-spacing:.1em; text-transform:uppercase; margin-bottom:8px; font-family:"JetBrains Mono",monospace;}
+  .agentic-card h3{ font-family:"Fraunces",serif; color:var(--paper); font-size:19px; margin:2px 0 10px; font-weight:600; }
+  .agentic-card ul{ list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:6px; }
+  .agentic-card li{ font-size:12.5px; color:var(--paper-dim); }
+  .agentic-card .stat{ margin-top:12px; font-family:"Fraunces",serif; font-size:26px; color:var(--gold); font-weight:600; }
+
+  .auto-label{ font-size:11px; color:var(--moss); font-family:"JetBrains Mono",monospace; letter-spacing:.1em; margin:18px 0 8px; opacity:0; }
+  .chip-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; max-width:480px; }
+  .chip{
+    padding:12px 12px; border-radius:12px; background:rgba(243,241,230,.05);
+    border:1px solid rgba(140,181,107,.2); opacity:0; transform:translateY(10px) scale(.92);
+  }
+  .chip .co{ font-size:11px; color:var(--paper-dim); font-weight:600; }
+  .chip .val{ font-family:"Fraunces",serif; font-size:20px; color:var(--gold); margin-top:3px; }
+
+  .fn-list{ display:flex; flex-direction:column; gap:10px; width:100%; max-width:440px; margin-top:20px; }
+  .fn-item{ display:flex; align-items:center; gap:12px; opacity:0; transform:translateX(-14px); }
+  .fn-gear{
+    width:26px; height:26px; flex:none; border-radius:50%; background:var(--ink-700);
+    display:flex; align-items:center; justify-content:center; color:var(--moss); font-size:13px;
+  }
+  .fn-gear.spin{ animation:spin 3s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .fn-item .txt{ font-size:13px; color:var(--paper); }
+
+  .stat-row{ display:flex; gap:18px; margin-top:20px; }
+  .stat{ text-align:center; opacity:0; transform:translateY(12px); }
+  .stat .val{ font-family:"Fraunces",serif; font-weight:600; font-size:36px; color:var(--gold); line-height:1; }
+  .stat .lbl{ font-size:10px; color:var(--paper-dim); margin-top:6px; max-width:92px; }
+  .cta-date{ font-family:"JetBrains Mono",monospace; font-size:12.5px; color:var(--moss); margin-top:22px; opacity:0; letter-spacing:.04em; }
+  .cta{
+    margin-top:12px; padding:13px 30px; border-radius:100px; border:1px solid var(--gold);
+    color:var(--ink-950); background:var(--gold); font-weight:600; font-size:14px;
+    opacity:0; transform:translateY(10px) scale(.96); letter-spacing:.01em;
+    box-shadow:0 0 0 0 rgba(227,168,59,.5);
+  }
+  .cta.pulse{ animation:ctaPulse 1.8s ease-in-out infinite; }
+  @keyframes ctaPulse{
+    0%,100%{ box-shadow:0 0 0 0 rgba(227,168,59,.35); }
+    50%{ box-shadow:0 0 0 10px rgba(227,168,59,0); }
+  }
+
+  .replay{
+    position:absolute; bottom:16px; right:16px; z-index:40;
+    background:rgba(243,241,230,.08); border:1px solid rgba(243,241,230,.2); color:var(--paper);
+    font-family:"Inter",sans-serif; font-size:12px; padding:8px 14px; border-radius:100px; cursor:pointer;
+    display:none; align-items:center; gap:6px; backdrop-filter:blur(6px);
+  }
+  .replay.show{ display:flex; }
+  .replay:hover{ background:rgba(243,241,230,.16); }
+
+  @media (prefers-reduced-motion:reduce){
+    *{ animation-duration:.001s !important; animation-iteration-count:1 !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="frame" id="frame">
+
+  <div class="particles" id="particles"></div>
+
+  <div class="route-wrap">
+    <svg width="100%" height="100%" viewBox="0 0 960 900" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="routeGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#8CB56B"/>
+          <stop offset="1" stop-color="#E3A83B"/>
+        </linearGradient>
+      </defs>
+      <path class="route-path" d="M -20 480 C 120 420, 180 560, 300 500 S 520 400, 660 470 S 820 560, 980 500"/>
+      <circle class="route-pulse"/>
+    </svg>
+  </div>
+
+  <div class="hud">
+    <div class="eyebrow-fixed">MASTERCLASS</div>
+    <div class="track"><div class="bar" id="bar"></div></div>
+    <div class="clock" id="clock">0:00</div>
+  </div>
+  <div class="dots" id="dots"></div>
+
+  <div class="stage">
+
+    <section class="scene" data-start="0" data-end="5" data-accent="#8CB56B" id="s1">
+      <div class="kicker" style="animation:kickerIn .5s ease .1s forwards;">IA &amp; SUPPLY CHAIN</div>
+      <h1 class="headline" id="s1-headline"></h1>
+    </section>
+
+    <section class="scene" data-start="5" data-end="15" data-accent="#8CB56B" id="s2">
+      <div class="kicker" style="animation:kickerIn .5s ease .1s forwards;">AU PROGRAMME</div>
+      <h1 class="headline" style="font-size:clamp(20px,5.6vw,26px);">Une masterclass en 4 temps</h1>
+      <div class="prog-grid" id="progGrid">
+        <div class="prog-card" data-t="0.6"><div class="num">01</div><div class="lbl">Les fondamentaux de l'IA verte</div></div>
+        <div class="prog-card" data-t="1.4"><div class="num">02</div><div class="lbl">Cas pratique : production de biens</div></div>
+        <div class="prog-card" data-t="2.2"><div class="num">03</div><div class="lbl">IA agentique vs automatisation</div></div>
+        <div class="prog-card" data-t="3.0"><div class="num">04</div><div class="lbl">Atelier pratique : votre workflow</div></div>
+      </div>
+    </section>
+
+    <section class="scene" data-start="15" data-end="45" data-accent="#E3A83B" id="s3">
+      <div class="kicker" style="animation:kickerIn .5s ease .1s forwards;">IA AGENTIQUE</div>
+      <h1 class="headline" style="font-size:clamp(19px,5.2vw,24px);">Elle ne répond plus. Elle agit.</h1>
+      <div class="agentic-stack" id="agenticStack">
+        <div class="agentic-card" id="ag1">
+          <div class="tag">Tri autonome</div>
+          <h3>Type FedEx — le robot trieur</h3>
+          <ul>
+            <li>Scan et décision sans intervention humaine</li>
+            <li>S'adapte en temps réel à chaque colis</li>
+          </ul>
+          <div class="stat">1 000 colis/h</div>
+        </div>
+        <div class="agentic-card" id="ag2">
+          <div class="tag">Service client</div>
+          <h3>Type Freight Amigo — l'agent virtuel</h3>
+          <ul>
+            <li>Disponible 24/7, suivi en continu</li>
+            <li>Mises à jour proactives aux clients</li>
+          </ul>
+          <div class="stat">-40% de coûts</div>
+        </div>
+        <div class="agentic-card" id="ag3">
+          <div class="tag">Données unifiées</div>
+          <h3>Type Logility — l'agent qui relie tout</h3>
+          <ul>
+            <li>Question en langage naturel, réponse croisée</li>
+            <li>Action autonome si les conditions sont réunies</li>
+          </ul>
+          <div class="stat">+5% de revenus</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="scene" data-start="45" data-end="65" data-accent="#8CB56B" id="s4">
+      <div class="kicker" style="animation:kickerIn .5s ease .1s forwards;">AUTOMATISATION</div>
+      <h1 class="headline" style="font-size:clamp(19px,5.2vw,24px);">Déjà là, dans le monde et près de vous</h1>
+      <div class="auto-label" id="lbl-world">DANS LE MONDE</div>
+      <div class="chip-grid" id="chipsWorld">
+        <div class="chip" data-t="0.3"><div class="co">Entrepôts robotisés</div><div class="val">-25% coûts</div></div>
+        <div class="chip" data-t="0.6"><div class="co">Livraison automatisée</div><div class="val">-40% coût/commande</div></div>
+      </div>
+      <div class="auto-label" id="lbl-togo" style="margin-top:14px;">AU TOGO ET EN RÉGION</div>
+      <div class="chip-grid" id="chipsTogo">
+        <div class="chip" data-t="0.3"><div class="co">Africa Global Logistics</div><div class="val">6 filiales à Lomé</div></div>
+        <div class="chip" data-t="0.6"><div class="co">Lomé Container Terminal</div><div class="val">Groupe MSC</div></div>
+      </div>
+    </section>
+
+    <section class="scene" data-start="65" data-end="80" data-accent="#E3A83B" id="s5">
+      <div class="kicker" style="animation:kickerIn .5s ease .1s forwards;">DANS L'ATELIER</div>
+      <h1 class="headline" style="font-size:clamp(19px,5.2vw,24px);">Les fonctions que vous activerez</h1>
+      <div class="fn-list" id="fnList">
+        <div class="fn-item" data-t="0.4"><div class="fn-gear spin">⚙</div><div class="txt">Connexion des systèmes en un seul flux</div></div>
+        <div class="fn-item" data-t="1.1"><div class="fn-gear spin">⚙</div><div class="txt">Déclenchement automatique sur événement</div></div>
+        <div class="fn-item" data-t="1.8"><div class="fn-gear spin">⚙</div><div class="txt">Appel à un modèle d'IA pour décider</div></div>
+        <div class="fn-item" data-t="2.5"><div class="fn-gear spin">⚙</div><div class="txt">Règles conditionnelles, sans code</div></div>
+        <div class="fn-item" data-t="3.2"><div class="fn-gear spin">⚙</div><div class="txt">Tableau de bord mis à jour en direct</div></div>
+      </div>
+    </section>
+
+    <section class="scene" data-start="80" data-end="90" data-accent="#E3A83B" id="s6">
+      <div class="kicker" style="animation:kickerIn .5s ease .1s forwards;">RÉSULTAT</div>
+      <h1 class="headline" style="font-size:clamp(20px,5.6vw,26px);">Des gains mesurables, dès le premier pilote</h1>
+      <div class="stat-row">
+        <div class="stat" id="st1"><div class="val"><span class="cnt" data-to="-22">0</span>%</div><div class="lbl">Émissions CO2</div></div>
+        <div class="stat" id="st2"><div class="val"><span class="cnt" data-to="-60">0</span>%</div><div class="lbl">Gaspillage de stock</div></div>
+        <div class="stat" id="st3"><div class="val"><span class="cnt" data-to="92">0</span>%</div><div class="lbl">Précision de prévision</div></div>
+      </div>
+      <div class="cta-date" id="ctaDate">SAMEDI 25 JUILLET</div>
+      <button class="cta" id="ctaBtn">Rejoindre la masterclass</button>
+    </section>
+
+  </div>
+
+  <button class="replay" id="replayBtn">↻ Revoir le teaser</button>
+</div>
+
+<script>
+(function(){
+  const TOTAL = 90;
+  const frame = document.getElementById('frame');
+  const bar = document.getElementById('bar');
+  const clock = document.getElementById('clock');
+  const replayBtn = document.getElementById('replayBtn');
+  const scenes = Array.from(document.querySelectorAll('.scene'));
+  const dotsWrap = document.getElementById('dots');
+
+  scenes.forEach((s,i)=>{
+    const d = document.createElement('div');
+    d.className = 'dot';
+    d.dataset.i = i;
+    dotsWrap.appendChild(d);
+  });
+  const dots = Array.from(dotsWrap.children);
+
+  const particlesWrap = document.getElementById('particles');
+  for(let i=0;i<18;i++){
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = 2 + Math.random()*4;
+    p.style.width = size+'px';
+    p.style.height = size+'px';
+    p.style.left = (Math.random()*100)+'%';
+    p.style.top = (Math.random()*100)+'%';
+    p.style.animationDuration = (4+Math.random()*5)+'s';
+    p.style.animationDelay = (Math.random()*4)+'s';
+    particlesWrap.appendChild(p);
+  }
+
+  const headlineWords = "Et si votre supply chain devenait aussi rentable qu'écologique ?".split(' ');
+  const s1h = document.getElementById('s1-headline');
+  s1h.innerHTML = headlineWords.map((w,i)=>`<span class="word" style="animation-delay:${0.25+i*0.09}s">${w}</span>`).join(' ');
+
+  let timers = [];
+  let rafId = null;
+  let startTime = null;
+
+  function schedule(fn, delaySec){ timers.push(setTimeout(fn, delaySec*1000)); }
+
+  function popIn(el, delayMs){
+    timers.push(setTimeout(()=>{
+      el.style.transition = 'opacity .45s ease, transform .45s cubic-bezier(.2,.8,.2,1)';
+      el.style.opacity = 1;
+      el.style.transform = 'translateY(0) scale(1)';
+    }, delayMs));
+  }
+  function slideIn(el, delayMs){
+    timers.push(setTimeout(()=>{
+      el.style.transition = 'opacity .4s ease, transform .4s cubic-bezier(.2,.8,.2,1)';
+      el.style.opacity = 1;
+      el.style.transform = 'translateX(0)';
+    }, delayMs));
+  }
+  function fadeInPlain(el, delayMs){
+    timers.push(setTimeout(()=>{ el.style.transition='opacity .4s ease'; el.style.opacity = 1; }, delayMs));
+  }
+
+  function countUp(el, to, durationMs){
+    const start = performance.now();
+    function tick(now){
+      const p = Math.min(1, (now-start)/durationMs);
+      const eased = 1 - Math.pow(1-p, 3);
+      el.textContent = Math.round(0 + to*eased);
+      if(p<1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function setAccent(scene){
+    const c = scene.dataset.accent || '#8CB56B';
+    frame.style.setProperty('--accent', c);
+  }
+
+  function runScene1(){
+    setAccent(document.getElementById('s1'));
+    document.getElementById('s1').classList.add('active');
+  }
+  function runScene2(){
+    setAccent(document.getElementById('s2'));
+    document.getElementById('s2').classList.add('active');
+    document.querySelectorAll('#progGrid .prog-card').forEach(el=>{
+      slideIn(el, parseFloat(el.dataset.t)*1000);
+    });
+  }
+  function runScene3(){
+    setAccent(document.getElementById('s3'));
+    document.getElementById('s3').classList.add('active');
+    const cards = ['ag1','ag2','ag3'].map(id=>document.getElementById(id));
+    const perCard = 10000;
+    cards.forEach((c,i)=>{
+      timers.push(setTimeout(()=> c.classList.add('on'), i*perCard + 200));
+      if(i < cards.length-1){
+        timers.push(setTimeout(()=> c.classList.remove('on'), (i+1)*perCard - 400));
+      }
+    });
+  }
+  function runScene4(){
+    setAccent(document.getElementById('s4'));
+    document.getElementById('s4').classList.add('active');
+    fadeInPlain(document.getElementById('lbl-world'), 200);
+    document.querySelectorAll('#chipsWorld .chip').forEach(el=> popIn(el, 400 + parseFloat(el.dataset.t)*1000));
+    fadeInPlain(document.getElementById('lbl-togo'), 8500);
+    document.querySelectorAll('#chipsTogo .chip').forEach(el=> popIn(el, 8700 + parseFloat(el.dataset.t)*1000));
+  }
+  function runScene5(){
+    setAccent(document.getElementById('s5'));
+    document.getElementById('s5').classList.add('active');
+    document.querySelectorAll('#fnList .fn-item').forEach(el=>{
+      slideIn(el, parseFloat(el.dataset.t)*1000);
+    });
+  }
+  function runScene6(){
+    setAccent(document.getElementById('s6'));
+    document.getElementById('s6').classList.add('active');
+    popIn(document.getElementById('st1'), 200);
+    popIn(document.getElementById('st2'), 350);
+    popIn(document.getElementById('st3'), 500);
+    document.querySelectorAll('.cnt').forEach((el,i)=>{
+      timers.push(setTimeout(()=> countUp(el, parseInt(el.dataset.to), 1100), 500+i*80));
+    });
+    fadeInPlain(document.getElementById('ctaDate'), 1600);
+    timers.push(setTimeout(()=>{
+      const btn = document.getElementById('ctaBtn');
+      btn.style.transition='opacity .4s ease, transform .4s cubic-bezier(.2,.8,.2,1)';
+      btn.style.opacity=1; btn.style.transform='translateY(0) scale(1)';
+      timers.push(setTimeout(()=> btn.classList.add('pulse'), 400));
+    }, 2200));
+  }
+
+  function crossfade(hideEl, hideDelaySec){
+    schedule(()=>{
+      hideEl.classList.add('leaving');
+      setTimeout(()=> hideEl.classList.remove('active','leaving'), 420);
+    }, hideDelaySec);
+  }
+
+  function clearAll(){
+    timers.forEach(t=>clearTimeout(t));
+    timers = [];
+    if(rafId) cancelAnimationFrame(rafId);
+    scenes.forEach(s=> s.classList.remove('active'));
+    document.querySelectorAll('.prog-card, .fn-item').forEach(el=>{
+      el.style.transition='none'; el.style.opacity=0; el.style.transform='translateX(-16px)';
+    });
+    document.querySelectorAll('.chip').forEach(el=>{
+      el.style.transition='none'; el.style.opacity=0; el.style.transform='translateY(10px) scale(.92)';
+    });
+    document.querySelectorAll('.agentic-card').forEach(el=> el.classList.remove('on'));
+    document.querySelectorAll('.stat').forEach(el=>{
+      el.style.transition='none'; el.style.opacity=0; el.style.transform='translateY(12px)';
+    });
+    document.getElementById('ctaDate').style.transition='none';
+    document.getElementById('ctaDate').style.opacity=0;
+    const btn = document.getElementById('ctaBtn');
+    btn.style.transition='none'; btn.style.opacity=0; btn.style.transform='translateY(10px) scale(.96)';
+    btn.classList.remove('pulse');
+    document.querySelectorAll('#lbl-world, #lbl-togo').forEach(el=>{ el.style.transition='none'; el.style.opacity=0; });
+    document.querySelectorAll('.cnt').forEach(el=> el.textContent='0');
+    replayBtn.classList.remove('show');
+    dots.forEach(d=> d.classList.remove('on'));
+  }
+
+  function updateDots(elapsed){
+    scenes.forEach((s,i)=>{
+      const start = parseFloat(s.dataset.start), end = parseFloat(s.dataset.end);
+      dots[i].classList.toggle('on', elapsed>=start && elapsed<end);
+    });
+  }
+
+  function playTimeline(){
+    startTime = performance.now();
+
+    schedule(runScene1, 0);
+    crossfade(document.getElementById('s1'), 5);
+
+    schedule(runScene2, 5);
+    crossfade(document.getElementById('s2'), 15);
+
+    schedule(runScene3, 15);
+    crossfade(document.getElementById('s3'), 45);
+
+    schedule(runScene4, 45);
+    crossfade(document.getElementById('s4'), 65);
+
+    schedule(runScene5, 65);
+    crossfade(document.getElementById('s5'), 80);
+
+    schedule(runScene6, 80);
+
+    schedule(()=> replayBtn.classList.add('show'), 90.5);
+
+    function tick(){
+      const elapsed = Math.min(TOTAL, (performance.now()-startTime)/1000);
+      const pct = (elapsed/TOTAL)*100;
+      bar.style.width = pct + '%';
+      const m = Math.floor(elapsed/60);
+      const s = Math.floor(elapsed%60).toString().padStart(2,'0');
+      clock.textContent = m + ':' + s;
+      updateDots(elapsed);
+      if(elapsed < TOTAL){ rafId = requestAnimationFrame(tick); }
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  replayBtn.addEventListener('click', ()=>{
+    clearAll();
+    requestAnimationFrame(playTimeline);
+  });
+
+  playTimeline();
+})();
+</script>
+
+</body>
+</html>
